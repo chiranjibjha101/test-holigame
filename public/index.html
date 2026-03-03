@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Holi Splash: Real-Time Multiplayer</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #fdf6e3;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        overflow: hidden;
+        touch-action: none;
+      }
+      h2 {
+        margin: 5px 0;
+        color: #e74c3c;
+        text-shadow: 1px 1px #f1c40f;
+      }
+      #status {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      #game-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100vw;
+        height: 100vh;
+      }
+      canvas {
+        background-color: #ffffff;
+        border: 3px solid #bdc3c7;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 800px;
+        aspect-ratio: 8 / 5;
+        object-fit: contain;
+        box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      #mobile-controls {
+        display: none;
+        width: 100%;
+        max-width: 800px;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-sizing: border-box;
+        margin-top: 10px;
+      }
+      .d-pad {
+        display: grid;
+        grid-template-columns: 50px 50px 50px;
+        grid-template-rows: 50px 50px 50px;
+        gap: 5px;
+      }
+      .btn {
+        background: #34495e;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        user-select: none;
+      }
+      .btn:active {
+        background: #2c3e50;
+        transform: scale(0.95);
+      }
+      .btn-up {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      .btn-left {
+        grid-column: 1;
+        grid-row: 2;
+      }
+      .btn-right {
+        grid-column: 3;
+        grid-row: 2;
+      }
+      .btn-down {
+        grid-column: 2;
+        grid-row: 3;
+      }
+
+      #splash-btn {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #e74c3c, #8e44ad, #3498db, #f1c40f);
+        color: white;
+        font-weight: bold;
+        font-size: 1.1rem;
+        border: none;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      }
+      #splash-btn:active {
+        transform: scale(0.9);
+      }
+      @media (max-width: 850px) {
+        #mobile-controls {
+          display: flex;
+        }
+        h2 {
+          font-size: 1.2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-wrapper">
+      <h2>🎨 Happy Holi 🎨</h2>
+      <div id="status">Connecting...</div>
+      <div>
+        👦🏽 Rahul: <span id="score-rahul">0</span> | 👧🏽 Rashmi:
+        <span id="score-rashmi">0</span>
+      </div>
+
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+      <div id="mobile-controls">
+        <div class="d-pad">
+          <button class="btn btn-up" id="btn-up">▲</button>
+          <button class="btn btn-left" id="btn-left">◀</button>
+          <button class="btn btn-right" id="btn-right">▶</button>
+          <button class="btn btn-down" id="btn-down">▼</button>
+        </div>
+        <button id="splash-btn">SPLASH!</button>
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      let myRole = null;
+      let players = {};
+      let balloons = [];
+      let splatters = [];
+      const holiColors = [
+        "#FF0000",
+        "#00FF00",
+        "#0000FF",
+        "#FFFF00",
+        "#FF00FF",
+        "#00FFFF",
+        "#FFA500",
+      ];
+
+      const speed = 5;
+      let myPlayer = { x: 400, y: 250, dx: 1, dy: 0, radius: 20 };
+      let cooldown = 0;
+
+      socket.on("init", (data) => {
+        myRole = data.role;
+        players = data.players;
+        splatters = data.splatters;
+        document.getElementById("status").innerText =
+          "You are playing as: " + myRole;
+        document.getElementById("status").style.color =
+          myRole === "Rahul"
+            ? "#2980b9"
+            : myRole === "Rashmi"
+            ? "#c0392b"
+            : "gray";
+        if (myRole !== "Spectator") {
+          myPlayer.x = players[socket.id].x;
+          myPlayer.y = players[socket.id].y;
+        }
+        updateScoreUI(data.scores);
+      });
+
+      socket.on("stateUpdate", (data) => {
+        players = data.players;
+      });
+      socket.on("scoreUpdate", (scores) => {
+        updateScoreUI(scores);
+      });
+      socket.on("splatterAdded", (newSplatters) => {
+        splatters.push(...newSplatters);
+      });
+      socket.on("balloonFired", (balloon) => {
+        balloons.push(balloon);
+      });
+
+      function updateScoreUI(scores) {
+        document.getElementById("score-rahul").innerText = scores.Rahul;
+        document.getElementById("score-rashmi").innerText = scores.Rashmi;
+      }
+
+      const keys = { w: false, a: false, s: false, d: false };
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "w" || e.key === "ArrowUp") keys.w = true;
+        if (e.key === "a" || e.key === "ArrowLeft") keys.a = true;
+        if (e.key === "s" || e.key === "ArrowDown") keys.s = true;
+        if (e.key === "d" || e.key === "ArrowRight") keys.d = true;
+        if (e.key === " " || e.key === "Enter") shoot();
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.key === "w" || e.key === "ArrowUp") keys.w = false;
+        if (e.key === "a" || e.key === "ArrowLeft") keys.a = false;
+        if (e.key === "s" || e.key === "ArrowDown") keys.s = false;
+        if (e.key === "d" || e.key === "ArrowRight") keys.d = false;
+      });
+
+      const bindTouch = (id, key) => {
+        const el = document.getElementById(id);
+        el.addEventListener(
+          "touchstart",
+          (e) => {
+            e.preventDefault();
+            keys[key] = true;
+          },
+          { passive: false }
+        );
+        el.addEventListener(
+          "touchend",
+          (e) => {
+            e.preventDefault();
+            keys[key] = false;
+          },
+          { passive: false }
+        );
+      };
+      bindTouch("btn-up", "w");
+      bindTouch("btn-down", "s");
+      bindTouch("btn-left", "a");
+      bindTouch("btn-right", "d");
+      document.getElementById("splash-btn").addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          shoot();
+        },
+        { passive: false }
+      );
+
+      function shoot() {
+        if (myRole === "Spectator" || cooldown > 0) return;
+        const color = holiColors[Math.floor(Math.random() * holiColors.length)];
+        const balloon = {
+          x: myPlayer.x,
+          y: myPlayer.y,
+          vx: myPlayer.dx * 12,
+          vy: myPlayer.dy * 12,
+          radius: 8,
+          color: color,
+          ownerRole: myRole,
+        };
+        socket.emit("shoot", balloon);
+        cooldown = 15;
+      }
+
+      function update() {
+        if (myRole !== "Spectator" && myRole !== null) {
+          let moved = false;
+          if (keys.w) {
+            myPlayer.y -= speed;
+            myPlayer.dx = 0;
+            myPlayer.dy = -1;
+            moved = true;
+          }
+          if (keys.s) {
+            myPlayer.y += speed;
+            myPlayer.dx = 0;
+            myPlayer.dy = 1;
+            moved = true;
+          }
+          if (keys.a) {
+            myPlayer.x -= speed;
+            myPlayer.dx = -1;
+            myPlayer.dy = 0;
+            moved = true;
+          }
+          if (keys.d) {
+            myPlayer.x += speed;
+            myPlayer.dx = 1;
+            myPlayer.dy = 0;
+            moved = true;
+          }
+
+          myPlayer.x = Math.max(
+            myPlayer.radius,
+            Math.min(canvas.width - myPlayer.radius, myPlayer.x)
+          );
+          myPlayer.y = Math.max(
+            myPlayer.radius,
+            Math.min(canvas.height - myPlayer.radius, myPlayer.y)
+          );
+
+          if (moved) socket.emit("move", myPlayer);
+          if (cooldown > 0) cooldown--;
+        }
+
+        for (let i = balloons.length - 1; i >= 0; i--) {
+          let b = balloons[i];
+          b.x += b.vx;
+          b.y += b.vy;
+
+          if (myRole !== "Spectator" && b.ownerRole === myRole) {
+            for (let id in players) {
+              let p = players[id];
+              if (p.role !== myRole) {
+                let dist = Math.hypot(b.x - p.x, b.y - p.y);
+                if (dist < b.radius + 20) {
+                  socket.emit("hit", {
+                    hitRole: p.role,
+                    x: p.x,
+                    y: p.y,
+                    color: b.color,
+                  });
+                  balloons.splice(i, 1);
+                  break;
+                }
+              }
+            }
+          }
+
+          if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+            if (balloons[i]) balloons.splice(i, 1);
+          }
+        }
+
+        draw();
+        requestAnimationFrame(update);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        splatters.forEach((s) => {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.fillStyle = s.color;
+          ctx.globalAlpha = 0.6;
+          ctx.fill();
+          ctx.closePath();
+        });
+        ctx.globalAlpha = 1.0;
+
+        for (let id in players) {
+          let p = players[id];
+          let isMe = id === socket.id;
+          let drawX = isMe ? myPlayer.x : p.x;
+          let drawY = isMe ? myPlayer.y : p.y;
+          let drawDx = isMe ? myPlayer.dx : p.dx;
+          let drawDy = isMe ? myPlayer.dy : p.dy;
+
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, 20, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#000";
+          ctx.stroke();
+          ctx.closePath();
+
+          ctx.beginPath();
+          ctx.arc(drawX + drawDx * 15, drawY + drawDy * 15, 5, 0, Math.PI * 2);
+          ctx.fillStyle = "#fff";
+          ctx.fill();
+          ctx.stroke();
+          ctx.closePath();
+
+          ctx.fillStyle = "#000";
+          ctx.font = "14px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText(p.role + (isMe ? " (You)" : ""), drawX, drawY - 25);
+        }
+
+        balloons.forEach((b) => {
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+          ctx.fillStyle = b.color;
+          ctx.fill();
+          ctx.strokeStyle = "#000";
+          ctx.stroke();
+          ctx.closePath();
+        });
+      }
+
+      update();
+    </script>
+  </body>
+</html>
