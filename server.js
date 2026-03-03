@@ -13,13 +13,25 @@ let players = {};
 let scores = { Rahul: 0, Rashmi: 0 };
 let splatters = [];
 
+// Helper: create splatters around a point, more for bombs
+function makeSplatters(x, y, color, count = 5, spread = 40, size = [5, 20]) {
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    result.push({
+      x: x + (Math.random() - 0.5) * spread,
+      y: y + (Math.random() - 0.5) * spread,
+      radius: Math.random() * (size[1] - size[0]) + size[0],
+      color,
+    });
+  }
+  return result;
+}
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
-
-  // Send available roles immediately when a user connects
   socket.emit("rolesUpdate", roles);
 
-  // Handle character selection
+  // ─── Join Game ───────────────────────────────────────────────
   socket.on("joinGame", (requestedRole) => {
     if (requestedRole === "Rahul" && !roles.Rahul) {
       roles.Rahul = socket.id;
@@ -29,7 +41,7 @@ io.on("connection", (socket) => {
       return socket.emit("roleError", "This character is already taken!");
     }
 
-    let myRole = requestedRole;
+    const myRole = requestedRole;
 
     if (myRole !== "Spectator") {
       players[socket.id] = {
@@ -43,14 +55,12 @@ io.on("connection", (socket) => {
       };
     }
 
-    // Send game state to the joined player
     socket.emit("init", { role: myRole, players, scores, splatters });
-    // Update everyone else
     io.emit("stateUpdate", { players });
     io.emit("rolesUpdate", roles);
   });
 
-  // Handle Movement
+  // ─── Movement ────────────────────────────────────────────────
   socket.on("move", (data) => {
     if (players[socket.id]) {
       players[socket.id].x = data.x;
@@ -61,39 +71,109 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle Shooting
+  // ─── Balloon ─────────────────────────────────────────────────
   socket.on("shoot", (balloon) => {
+    balloon.type = "balloon";
     io.emit("balloonFired", balloon);
   });
 
-  // Handle Hits & Splatters
+  // ─── Pichkari (stream of droplets) ───────────────────────────
+  socket.on("pichkariShoot", (stream) => {
+    stream.forEach((s) => {
+      s.type = "pichkari";
+    });
+    io.emit("pichkariFired", stream);
+  });
+
+  // ─── Bomb ────────────────────────────────────────────────────
+  socket.on("bombShoot", (bomb) => {
+    bomb.type = "bomb";
+    io.emit("bombFired", bomb);
+  });
+
+  // ─── Burst (8-way spread) ─────────────────────────────────────
+  socket.on("burstShoot", (burstArr) => {
+    burstArr.forEach((b) => {
+      b.type = "burst";
+    });
+    io.emit("burstFired", burstArr);
+  });
+
+  // ─── Hit Detection ────────────────────────────────────────────
   socket.on("hit", (data) => {
     if (data.hitRole === "Rahul") scores.Rashmi++;
     if (data.hitRole === "Rashmi") scores.Rahul++;
 
-    const newSplatters = [];
-    for (let i = 0; i < 5; i++) {
-      newSplatters.push({
-        x: data.x + (Math.random() - 0.5) * 40,
-        y: data.y + (Math.random() - 0.5) * 40,
-        radius: Math.random() * 15 + 5,
-        color: data.color,
+    // More splatters for heavier weapons
+    let count = 5,
+      spread = 40,
+      size = [5, 20];
+    if (data.type === "bomb") {
+      count = 20;
+      spread = 80;
+      size = [8, 28];
+    } else if (data.type === "burst") {
+      count = 10;
+      spread = 55;
+      size = [6, 22];
+    } else if (data.type === "pichkari") {
+      count = 6;
+      spread = 25;
+      size = [3, 12];
+    }
+
+    const newSplatters = makeSplatters(
+      data.x,
+      data.y,
+      data.color,
+      count,
+      spread,
+      size
+    );
+
+    // For bombs, add rainbow splatters too
+    if (data.type === "bomb") {
+      const extraColors = [
+        "#00E676",
+        "#2979FF",
+        "#FFEA00",
+        "#FF4081",
+        "#FF6D00",
+      ];
+      extraColors.forEach((c) => {
+        newSplatters.push(
+          ...makeSplatters(
+            data.x + (Math.random() - 0.5) * 60,
+            data.y + (Math.random() - 0.5) * 60,
+            c,
+            4,
+            30,
+            [4, 15]
+          )
+        );
       });
     }
+
     splatters.push(...newSplatters);
-    if (splatters.length > 300) splatters.splice(0, 5);
+    if (splatters.length > 500) splatters.splice(0, newSplatters.length);
 
     io.emit("scoreUpdate", scores);
     io.emit("splatterAdded", newSplatters);
+
+    // Notify victim
+    io.emit("hitNotify", {
+      victimId: data.victimId,
+      color: data.color,
+      type: data.type,
+    });
   });
 
-  // Handle Game Reset
+  // ─── Reset ────────────────────────────────────────────────────
   socket.on("resetGame", () => {
     scores = { Rahul: 0, Rashmi: 0 };
     splatters = [];
-    // Reset player positions
     for (let id in players) {
-      let p = players[id];
+      const p = players[id];
       p.x = p.role === "Rahul" ? 100 : 700;
       p.y = 250;
       p.dx = p.role === "Rahul" ? 1 : -1;
@@ -102,19 +182,18 @@ io.on("connection", (socket) => {
     io.emit("gameReset", { players, scores, splatters });
   });
 
-  // Handle Disconnect
+  // ─── Disconnect ───────────────────────────────────────────────
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
     if (roles.Rahul === socket.id) roles.Rahul = null;
     if (roles.Rashmi === socket.id) roles.Rashmi = null;
     delete players[socket.id];
-
     io.emit("stateUpdate", { players });
-    io.emit("rolesUpdate", roles); // Notify clients a character is free again
+    io.emit("rolesUpdate", roles);
   });
 });
 
 const PORT = 3000;
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Holi Game Backend running on port ${PORT}`);
+  console.log(`🎨 Holi Game running on port ${PORT}`);
 });
