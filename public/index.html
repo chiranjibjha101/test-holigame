@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
     />
-    <title>Holi Splash: Real-Time Multiplayer</title>
+    <title>Holi Splash</title>
     <script src="/socket.io/socket.io.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap"
@@ -14,11 +14,8 @@
     />
     <style>
       :root {
-        --red: #ff3d5a;
-        --blue: #3d9fff;
-        --yellow: #ffe033;
-        --green: #3dff8c;
-        --pink: #ff3db4;
+        --p1: #3d9fff;
+        --p2: #ff3d5a;
         --bg: #fff8f0;
       }
       * {
@@ -33,8 +30,6 @@
         overflow: hidden;
         touch-action: none;
       }
-
-      /* ===== CONFETTI BG ===== */
       #confetti-bg {
         position: fixed;
         top: 0;
@@ -47,8 +42,6 @@
       }
       .confetti-dot {
         position: absolute;
-        width: 10px;
-        height: 10px;
         border-radius: 50%;
         opacity: 0.18;
         animation: floatDot linear infinite;
@@ -63,43 +56,6 @@
           opacity: 0;
         }
       }
-
-      /* ===== SELECTION SCREEN ===== */
-      #selection-screen {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: linear-gradient(
-          135deg,
-          #fff8f0 0%,
-          #ffe8f0 50%,
-          #e8f8ff 100%
-        );
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 100;
-      }
-      #selection-screen h1 {
-        font-family: "Lilita One", cursive;
-        font-size: clamp(2rem, 6vw, 3.5rem);
-        margin: 0 0 5px;
-        background: linear-gradient(
-          90deg,
-          var(--red),
-          #ff8c00,
-          var(--yellow),
-          var(--green),
-          var(--blue),
-          var(--pink)
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: hueShift 3s linear infinite;
-      }
       @keyframes hueShift {
         0% {
           filter: hue-rotate(0deg);
@@ -108,35 +64,151 @@
           filter: hue-rotate(360deg);
         }
       }
-      #selection-screen h2 {
-        font-family: "Nunito", sans-serif;
-        color: #555;
-        font-size: 1rem;
-        margin: 0 0 25px;
+      @keyframes shimmer {
+        0% {
+          left: -100%;
+        }
+        100% {
+          left: 200%;
+        }
+      }
+
+      /* ── Selection ── */
+      #sel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(135deg, #fff8f0, #ffe8f0, #e8f8ff);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        gap: 5px;
+      }
+      #sel h1 {
+        font-family: "Lilita One", cursive;
+        font-size: clamp(2rem, 6vw, 3.2rem);
+        margin: 0 0 2px;
+        background: linear-gradient(
+          90deg,
+          #ff3d5a,
+          #ff8c00,
+          #ffe033,
+          #3dff8c,
+          #3d9fff,
+          #cc3dff
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: hueShift 3s linear infinite;
+      }
+      #sel p {
+        color: #999;
+        font-size: 0.88rem;
+        margin: 0 0 18px;
         font-weight: 600;
       }
-      .char-card {
+      .cards {
         display: flex;
-        gap: 20px;
+        gap: 18px;
         flex-wrap: wrap;
         justify-content: center;
-        margin-bottom: 15px;
       }
-      .char-btn {
-        padding: 18px 32px;
+      .card {
+        background: #fff;
+        border-radius: 22px;
+        padding: 22px 22px;
+        width: 215px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.09);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        border: 3px solid transparent;
+        transition: border-color 0.2s, transform 0.2s, opacity 0.2s;
+      }
+      .card:not(.taken):hover {
+        transform: translateY(-3px);
+      }
+      .card.p1 {
+        border-color: var(--p1);
+      }
+      .card.p2 {
+        border-color: var(--p2);
+      }
+      .card.taken {
+        opacity: 0.48;
+        pointer-events: none;
+      }
+      .avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card.p1 .avatar {
+        background: #3d9fff22;
+      }
+      .card.p2 .avatar {
+        background: #ff3d5a22;
+      }
+      .clabel {
         font-family: "Lilita One", cursive;
-        font-size: 1.2rem;
+        font-size: 1.05rem;
+      }
+      .card.p1 .clabel {
+        color: var(--p1);
+      }
+      .card.p2 .clabel {
+        color: var(--p2);
+      }
+      .nig {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+      }
+      .ni {
+        width: 100%;
+        padding: 9px 12px;
+        border: 2px solid #eee;
+        border-radius: 12px;
+        font-family: "Nunito", sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #333;
+        outline: none;
+        text-align: center;
+        transition: border-color 0.2s;
+      }
+      .ni:focus {
+        border-color: #ff8c00;
+      }
+      .ni::placeholder {
+        color: #ccc;
+        font-weight: 600;
+      }
+      .jbtn {
+        width: 100%;
+        padding: 11px;
         border: none;
-        border-radius: 20px;
+        border-radius: 14px;
+        font-family: "Lilita One", cursive;
+        font-size: 1rem;
+        color: #fff;
         cursor: pointer;
-        color: white;
-        min-width: 200px;
-        box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15), 0 10px 30px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
         transition: transform 0.1s, box-shadow 0.1s;
         position: relative;
         overflow: hidden;
       }
-      .char-btn::after {
+      .jbtn::after {
         content: "";
         position: absolute;
         top: 0;
@@ -151,60 +223,66 @@
         );
         animation: shimmer 2.5s infinite;
       }
-      @keyframes shimmer {
-        0% {
-          left: -100%;
-        }
-        100% {
-          left: 200%;
-        }
+      .jbtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 rgba(0, 0, 0, 0.12);
       }
-      .char-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 9px 0 rgba(0, 0, 0, 0.15), 0 15px 35px rgba(0, 0, 0, 0.15);
-      }
-      .char-btn:active {
+      .jbtn:active {
         transform: translateY(2px);
-        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
       }
-      .char-btn:disabled {
-        background: #bdc3c7 !important;
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-      .char-btn:disabled::after {
-        display: none;
-      }
-      #btn-rahul {
+      .card.p1 .jbtn {
         background: linear-gradient(135deg, #3d9fff, #2266cc);
       }
-      #btn-rashmi {
+      .card.p2 .jbtn {
         background: linear-gradient(135deg, #ff3d5a, #cc1130);
       }
-      #btn-spectator {
-        background: linear-gradient(135deg, #7f8c8d, #556);
+      .taken-lbl {
+        font-size: 0.75rem;
+        color: #aaa;
+        font-weight: 700;
+        background: #f4f4f4;
+        border-radius: 20px;
+        padding: 3px 12px;
       }
-
-      /* weapon hint */
-      .weapon-hint {
+      .specbtn {
+        background: linear-gradient(135deg, #7f8c8d, #4a5568);
+        color: #fff;
+        border: none;
+        padding: 11px 26px;
+        border-radius: 20px;
+        font-family: "Lilita One", cursive;
+        font-size: 0.95rem;
+        cursor: pointer;
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+        transition: transform 0.1s;
+        margin-top: 4px;
+      }
+      .specbtn:hover {
+        transform: translateY(-2px);
+      }
+      .specbtn:active {
+        transform: translateY(2px);
+      }
+      .whint {
         display: flex;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
         justify-content: center;
-        margin-top: 5px;
+        margin-top: 14px;
       }
-      .weapon-tag {
-        background: white;
+      .wtag {
+        background: #fff;
         border-radius: 20px;
-        padding: 6px 14px;
-        font-size: 0.82rem;
-        color: #555;
-        font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 5px 12px;
+        font-size: 0.76rem;
+        color: #666;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
       }
 
-      /* ===== GAME WRAPPER ===== */
-      #game-wrapper {
+      /* ── Game ── */
+      #gw {
         display: none;
         flex-direction: column;
         align-items: center;
@@ -213,7 +291,7 @@
         height: 100vh;
         padding-top: 8px;
       }
-      #top-bar {
+      #topbar {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -222,16 +300,16 @@
         margin-bottom: 6px;
         padding: 0 10px;
       }
-      .title-bar {
+      .title {
         font-family: "Lilita One", cursive;
         font-size: 1.4rem;
-        background: linear-gradient(90deg, var(--red), #ff8c00, var(--blue));
+        background: linear-gradient(90deg, #ff3d5a, #ff8c00, #3d9fff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         animation: hueShift 4s linear infinite;
       }
-      .score-board {
-        background: white;
+      .sb {
+        background: #fff;
         border-radius: 30px;
         padding: 6px 16px;
         box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
@@ -242,15 +320,15 @@
         gap: 8px;
         align-items: center;
       }
-      .score-board .r {
-        color: var(--blue);
+      .sb .s1 {
+        color: var(--p1);
       }
-      .score-board .ra {
-        color: var(--red);
+      .sb .s2 {
+        color: var(--p2);
       }
-      #reset-btn {
+      #rbtn {
         background: linear-gradient(135deg, #ff8c00, #ff3d5a);
-        color: white;
+        color: #fff;
         border: none;
         padding: 7px 14px;
         border-radius: 20px;
@@ -261,12 +339,10 @@
         box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
         transition: transform 0.1s;
       }
-      #reset-btn:active {
+      #rbtn:active {
         transform: scale(0.95);
       }
-
-      /* weapon selector */
-      #weapon-bar {
+      #wbar {
         display: flex;
         gap: 8px;
         margin-bottom: 6px;
@@ -274,9 +350,10 @@
         width: 100%;
         padding: 0 10px;
         justify-content: center;
+        align-items: center;
       }
-      .wbtn {
-        background: white;
+      .wb {
+        background: #fff;
         border: 3px solid #eee;
         border-radius: 14px;
         padding: 6px 14px;
@@ -291,18 +368,17 @@
         align-items: center;
         gap: 5px;
       }
-      .wbtn:hover {
+      .wb:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
-      .wbtn.active {
+      .wb.active {
         border-color: #ff8c00;
         color: #ff8c00;
         background: #fff8f0;
       }
-      .wbtn .badge {
+      .wb .bdg {
         background: #ff8c00;
-        color: white;
+        color: #fff;
         font-size: 0.68rem;
         padding: 1px 5px;
         border-radius: 8px;
@@ -311,23 +387,20 @@
         font-weight: 800;
         font-size: 0.88rem;
         padding: 4px 14px;
-        background: white;
+        background: #fff;
         border-radius: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
-
       canvas {
         background: #fff;
         border: 3px solid #f0e0d0;
         border-radius: 14px;
         width: 100%;
         max-width: 820px;
-        aspect-ratio: 8 / 5;
+        aspect-ratio: 8/5;
         box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
       }
-
-      /* ===== MOBILE CONTROLS ===== */
-      #mobile-controls {
+      #mc {
         display: none;
         width: 100%;
         max-width: 820px;
@@ -336,7 +409,7 @@
         padding: 10px 20px;
         margin-top: 6px;
       }
-      .d-pad {
+      .dp {
         display: grid;
         grid-template-columns: 48px 48px 48px;
         grid-template-rows: 48px 48px 48px;
@@ -344,7 +417,7 @@
       }
       .btn {
         background: #2c3e50;
-        color: white;
+        color: #fff;
         border: none;
         border-radius: 10px;
         font-weight: bold;
@@ -356,24 +429,23 @@
         background: #1a252f;
         transform: scale(0.93);
       }
-      .btn-up {
+      .bup {
         grid-column: 2;
         grid-row: 1;
       }
-      .btn-left {
+      .bleft {
         grid-column: 1;
         grid-row: 2;
       }
-      .btn-right {
+      .bright {
         grid-column: 3;
         grid-row: 2;
       }
-      .btn-down {
+      .bdown {
         grid-column: 2;
         grid-row: 3;
       }
-
-      #splash-btn {
+      #splashbtn {
         width: 78px;
         height: 78px;
         border-radius: 50%;
@@ -386,7 +458,7 @@
           #3d9fff,
           #cc3dff
         );
-        color: white;
+        color: #fff;
         font-family: "Lilita One", cursive;
         font-size: 1rem;
         border: none;
@@ -394,12 +466,10 @@
         cursor: pointer;
         animation: hueShift 2s linear infinite;
       }
-      #splash-btn:active {
+      #splashbtn:active {
         transform: scale(0.88);
       }
-
-      /* mobile weapon selector */
-      #mobile-weapon {
+      #mw {
         display: none;
         gap: 6px;
         justify-content: center;
@@ -407,8 +477,8 @@
         margin-top: 4px;
         flex-wrap: wrap;
       }
-      .mwbtn {
-        background: white;
+      .mwb {
+        background: #fff;
         border: 2px solid #eee;
         border-radius: 10px;
         padding: 5px 10px;
@@ -417,13 +487,11 @@
         color: #555;
         cursor: pointer;
       }
-      .mwbtn.active {
+      .mwb.active {
         border-color: #ff8c00;
         color: #ff8c00;
       }
-
-      /* ===== HIT FLASH OVERLAY ===== */
-      #hit-flash {
+      #hf {
         position: fixed;
         top: 0;
         left: 0;
@@ -434,15 +502,13 @@
         opacity: 0;
         transition: opacity 0.05s;
       }
-
-      /* ===== POWER-UP TOAST ===== */
       #toast {
         position: fixed;
         bottom: 120px;
         left: 50%;
         transform: translateX(-50%) translateY(30px);
         background: #222;
-        color: white;
+        color: #fff;
         border-radius: 20px;
         padding: 10px 22px;
         font-family: "Lilita One", cursive;
@@ -457,268 +523,259 @@
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
-
       @media (max-width: 850px) {
-        #mobile-controls {
+        #mc {
           display: flex;
         }
-        #mobile-weapon {
+        #mw {
           display: flex;
         }
-        .title-bar {
+        .title {
           font-size: 1rem;
         }
-        #weapon-bar {
+        #wbar {
           display: none;
+        }
+        .card {
+          width: 165px;
+          padding: 16px 14px;
         }
       }
     </style>
   </head>
   <body>
-    <!-- Floating confetti bg -->
     <div id="confetti-bg"></div>
-    <div id="hit-flash"></div>
+    <div id="hf"></div>
     <div id="toast"></div>
 
-    <!-- ===== SELECTION SCREEN ===== -->
-    <div id="selection-screen">
-      <h1>🎨 Happy Holi 🎨</h1>
-      <h2>Select your character and splash away!</h2>
-      <div class="char-card">
-        <button id="btn-rahul" class="char-btn" onclick="joinGame('Rahul')">
-          👦🏽 Play as Rahul
-        </button>
-        <button id="btn-rashmi" class="char-btn" onclick="joinGame('Rashmi')">
-          👧🏽 Play as Rashmi
-        </button>
+    <!-- SELECTION -->
+    <div id="sel">
+      <h1>🎨 Holi Splash! 🎨</h1>
+      <p>Pick your slot, enter your name &amp; splash away!</p>
+      <div class="cards">
+        <div class="card p1" id="card-p1">
+          <div class="avatar">🎮</div>
+          <div class="clabel">Player 1</div>
+          <div class="nig" id="p1form">
+            <input
+              class="ni"
+              id="n1"
+              maxlength="14"
+              placeholder="Your name…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="jbtn" onclick="join('P1')">
+              Play as Player 1 💙
+            </button>
+          </div>
+          <div class="taken-lbl" id="p1tk" style="display: none">
+            ⛔ Already taken
+          </div>
+        </div>
+        <div class="card p2" id="card-p2">
+          <div class="avatar">🎮</div>
+          <div class="clabel">Player 2</div>
+          <div class="nig" id="p2form">
+            <input
+              class="ni"
+              id="n2"
+              maxlength="14"
+              placeholder="Your name…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="jbtn" onclick="join('P2')">
+              Play as Player 2 ❤️
+            </button>
+          </div>
+          <div class="taken-lbl" id="p2tk" style="display: none">
+            ⛔ Already taken
+          </div>
+        </div>
       </div>
-      <button
-        id="btn-spectator"
-        class="char-btn"
-        onclick="joinGame('Spectator')"
-        style="min-width: 140px; padding: 12px 24px; font-size: 1rem"
-      >
-        👁️ Spectate
-      </button>
-      <div class="weapon-hint" style="margin-top: 20px">
-        <div class="weapon-tag">🎈 Color Balloon</div>
-        <div class="weapon-tag">💦 Pichkari</div>
-        <div class="weapon-tag">💣 Color Bomb</div>
-        <div class="weapon-tag">⚡ Speed Burst</div>
+      <button class="specbtn" onclick="join('Spectator')">👁️ Spectate</button>
+      <div class="whint">
+        <div class="wtag">🎈 Balloon [1]</div>
+        <div class="wtag">💦 Pichkari [2]</div>
+        <div class="wtag">💣 Bomb [3]</div>
+        <div class="wtag">⚡ Burst [4]</div>
       </div>
     </div>
 
-    <!-- ===== MAIN GAME ===== -->
-    <div id="game-wrapper">
-      <div id="top-bar">
-        <div class="title-bar">🎨 Holi Splash!</div>
-        <div class="score-board">
-          <span class="r">👦🏽 <span id="score-rahul">0</span></span>
-          <span style="color: #ccc">|</span>
-          <span class="ra">👧🏽 <span id="score-rashmi">0</span></span>
+    <!-- GAME -->
+    <div id="gw">
+      <div id="topbar">
+        <div class="title">🎨 Holi Splash!</div>
+        <div class="sb">
+          <span class="s1"
+            >🎮 <span id="ln1">P1</span>: <span id="sc1">0</span></span
+          >
+          <span style="color: #ddd">|</span>
+          <span class="s2"
+            >🎮 <span id="ln2">P2</span>: <span id="sc2">0</span></span
+          >
         </div>
-        <button id="reset-btn" onclick="resetGame()">🔄 Reset</button>
+        <button id="rbtn" onclick="resetGame()">🔄 Reset</button>
       </div>
-
-      <!-- Weapon bar (desktop) -->
-      <div id="weapon-bar">
-        <span id="status">Connecting...</span>
+      <div id="wbar">
+        <span id="status">Connecting…</span>
         <div style="display: flex; gap: 8px">
-          <button
-            class="wbtn active"
-            onclick="selectWeapon('balloon')"
-            id="wbtn-balloon"
-          >
-            🎈 Balloon <span class="badge">∞</span>
+          <button class="wb active" onclick="selW('balloon')" id="wb-balloon">
+            🎈 Balloon <span class="bdg">∞</span>
           </button>
-          <button
-            class="wbtn"
-            onclick="selectWeapon('pichkari')"
-            id="wbtn-pichkari"
-          >
-            💦 Pichkari <span class="badge">∞</span>
+          <button class="wb" onclick="selW('pichkari')" id="wb-pichkari">
+            💦 Pichkari <span class="bdg">∞</span>
           </button>
-          <button class="wbtn" onclick="selectWeapon('bomb')" id="wbtn-bomb">
-            💣 Bomb <span class="badge" id="bomb-count">3</span>
+          <button class="wb" onclick="selW('bomb')" id="wb-bomb">
+            💣 Bomb <span class="bdg" id="bc">3</span>
           </button>
-          <button class="wbtn" onclick="selectWeapon('burst')" id="wbtn-burst">
-            ⚡ Burst <span class="badge" id="burst-count">2</span>
+          <button class="wb" onclick="selW('burst')" id="wb-burst">
+            ⚡ Burst <span class="bdg" id="brc">2</span>
           </button>
         </div>
       </div>
-
-      <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-      <!-- Mobile weapon selector -->
-      <div id="mobile-weapon">
-        <button
-          class="mwbtn active"
-          onclick="selectWeapon('balloon')"
-          id="mwbtn-balloon"
-        >
+      <canvas id="c" width="800" height="500"></canvas>
+      <div id="mw">
+        <button class="mwb active" onclick="selW('balloon')" id="mwb-balloon">
           🎈
         </button>
-        <button
-          class="mwbtn"
-          onclick="selectWeapon('pichkari')"
-          id="mwbtn-pichkari"
-        >
+        <button class="mwb" onclick="selW('pichkari')" id="mwb-pichkari">
           💦
         </button>
-        <button class="mwbtn" onclick="selectWeapon('bomb')" id="mwbtn-bomb">
-          💣<small id="mbomb-count">3</small>
+        <button class="mwb" onclick="selW('bomb')" id="mwb-bomb">
+          💣<small id="mbc">3</small>
         </button>
-        <button class="mwbtn" onclick="selectWeapon('burst')" id="mwbtn-burst">
-          ⚡<small id="mburst-count">2</small>
+        <button class="mwb" onclick="selW('burst')" id="mwb-burst">
+          ⚡<small id="mbrc">2</small>
         </button>
       </div>
-
-      <div id="mobile-controls">
-        <div class="d-pad">
-          <button class="btn btn-up" id="btn-up">▲</button>
-          <button class="btn btn-left" id="btn-left">◀</button>
-          <button class="btn btn-right" id="btn-right">▶</button>
-          <button class="btn btn-down" id="btn-down">▼</button>
+      <div id="mc">
+        <div class="dp">
+          <button class="btn bup" id="bu">▲</button>
+          <button class="btn bleft" id="bl">◀</button>
+          <button class="btn bright" id="br">▶</button>
+          <button class="btn bdown" id="bd">▼</button>
         </div>
-        <button id="splash-btn">SPLASH!</button>
+        <button id="splashbtn">SPLASH!</button>
       </div>
     </div>
 
     <script>
-      // ===========================
-      //  AUDIO ENGINE (Web Audio)
-      // ===========================
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      let audioCtx = null;
-
-      function ensureAudio() {
-        if (!audioCtx) audioCtx = new AudioCtx();
-        if (audioCtx.state === "suspended") audioCtx.resume();
+      // ── Audio ──────────────────────────────────────────
+      const ACtx = window.AudioContext || window.webkitAudioContext;
+      let ac = null;
+      function ea() {
+        if (!ac) ac = new ACtx();
+        if (ac.state === "suspended") ac.resume();
       }
-
-      function playTone(freq, type, duration, volume = 0.3, decay = true) {
-        ensureAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-        if (decay)
-          gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            audioCtx.currentTime + duration
-          );
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+      function tone(f, t, d, v = 0.3) {
+        ea();
+        const o = ac.createOscillator(),
+          g = ac.createGain();
+        o.connect(g);
+        g.connect(ac.destination);
+        o.type = t;
+        o.frequency.value = f;
+        g.gain.setValueAtTime(v, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + d);
+        o.start();
+        o.stop(ac.currentTime + d);
       }
-
-      function playNoise(duration, volume = 0.15) {
-        ensureAudio();
-        const bufSize = audioCtx.sampleRate * duration;
-        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      function noise(d, v = 0.15) {
+        ea();
+        const n = ac.sampleRate * d,
+          buf = ac.createBuffer(1, n, ac.sampleRate);
         const data = buf.getChannelData(0);
-        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
-        const src = audioCtx.createBufferSource();
+        for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+        const src = ac.createBufferSource();
         src.buffer = buf;
-        const gain = audioCtx.createGain();
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "bandpass";
-        filter.frequency.value = 800;
-        filter.Q.value = 1;
-        src.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-          audioCtx.currentTime + duration
-        );
+        const g = ac.createGain(),
+          fl = ac.createBiquadFilter();
+        fl.type = "bandpass";
+        fl.frequency.value = 800;
+        src.connect(fl);
+        fl.connect(g);
+        g.connect(ac.destination);
+        g.gain.setValueAtTime(v, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + d);
         src.start();
-        src.stop(audioCtx.currentTime + duration);
+        src.stop(ac.currentTime + d);
       }
+      const sfx = {
+        balloon: () => {
+          tone(400, "sine", 0.1, 0.2);
+          tone(600, "sine", 0.08, 0.1);
+        },
+        pichkari: () => {
+          noise(0.15, 0.12);
+          tone(300, "sawtooth", 0.12, 0.08);
+        },
+        bomb: () => {
+          tone(200, "square", 0.15, 0.25);
+          setTimeout(() => noise(0.1, 0.2), 50);
+        },
+        burst: () => {
+          [600, 800, 1000, 800, 600].forEach((f, i) =>
+            setTimeout(() => tone(f, "sine", 0.05, 0.15), i * 30)
+          );
+        },
+        hit: () => {
+          noise(0.25, 0.3);
+          tone(150, "sine", 0.3, 0.2);
+          [880, 660, 440].forEach((f, i) =>
+            setTimeout(() => tone(f, "triangle", 0.12, 0.15), i * 40)
+          );
+        },
+        score: () => {
+          [523, 659, 784, 1047].forEach((f, i) =>
+            setTimeout(() => tone(f, "sine", 0.15, 0.25), i * 80)
+          );
+        },
+        powerup: () => {
+          [440, 550, 660, 880].forEach((f, i) =>
+            setTimeout(() => tone(f, "sine", 0.1, 0.2), i * 60)
+          );
+        },
+        empty: () => tone(200, "square", 0.08, 0.15),
+        walk: () => {
+          if (Math.random() < 0.08) tone(180, "sine", 0.03, 0.04);
+        },
+      };
 
-      // Sound effects
-      function sfxShoot_balloon() {
-        playTone(400, "sine", 0.1, 0.2);
-        playTone(600, "sine", 0.08, 0.1);
-      }
-      function sfxShoot_pichkari() {
-        playNoise(0.15, 0.12);
-        playTone(300, "sawtooth", 0.12, 0.08);
-      }
-      function sfxShoot_bomb() {
-        playTone(200, "square", 0.15, 0.25);
-        setTimeout(() => playNoise(0.1, 0.2), 50);
-      }
-      function sfxShoot_burst() {
-        [600, 800, 1000, 800, 600].forEach((f, i) =>
-          setTimeout(() => playTone(f, "sine", 0.05, 0.15), i * 30)
-        );
-      }
-      function sfxHit() {
-        playNoise(0.25, 0.3);
-        playTone(150, "sine", 0.3, 0.2);
-        [880, 660, 440].forEach((f, i) =>
-          setTimeout(() => playTone(f, "triangle", 0.12, 0.15), i * 40)
-        );
-      }
-      function sfxScore() {
-        [523, 659, 784, 1047].forEach((f, i) =>
-          setTimeout(() => playTone(f, "sine", 0.15, 0.25), i * 80)
-        );
-      }
-      function sfxWalk() {
-        if (Math.random() < 0.08) playTone(180, "sine", 0.03, 0.04);
-      }
-      function sfxPowerUp() {
-        [440, 550, 660, 880].forEach((f, i) =>
-          setTimeout(() => playTone(f, "sine", 0.1, 0.2), i * 60)
-        );
-      }
-      function sfxEmpty() {
-        playTone(200, "square", 0.08, 0.15);
-      }
+      // ── Confetti ───────────────────────────────────────
+      (() => {
+        const el = document.getElementById("confetti-bg");
+        const cols = [
+          "#ff3d5a",
+          "#3d9fff",
+          "#ffe033",
+          "#3dff8c",
+          "#ff3db4",
+          "#ff8c00",
+          "#cc3dff",
+        ];
+        for (let i = 0; i < 30; i++) {
+          const d = document.createElement("div");
+          d.className = "confetti-dot";
+          const s = 8 + Math.random() * 16;
+          Object.assign(d.style, {
+            left: Math.random() * 100 + "vw",
+            width: s + "px",
+            height: s + "px",
+            background: cols[~~(Math.random() * cols.length)],
+            animationDuration: 6 + Math.random() * 10 + "s",
+            animationDelay: Math.random() * 12 + "s",
+          });
+          el.appendChild(d);
+        }
+      })();
 
-      // ===========================
-      //  CONFETTI BACKGROUND
-      // ===========================
-      const confettiBg = document.getElementById("confetti-bg");
-      const confettiColors = [
-        "#ff3d5a",
-        "#3d9fff",
-        "#ffe033",
-        "#3dff8c",
-        "#ff3db4",
-        "#ff8c00",
-        "#cc3dff",
-      ];
-      for (let i = 0; i < 30; i++) {
-        const d = document.createElement("div");
-        d.className = "confetti-dot";
-        d.style.left = Math.random() * 100 + "vw";
-        d.style.width = d.style.height = 8 + Math.random() * 16 + "px";
-        d.style.background =
-          confettiColors[Math.floor(Math.random() * confettiColors.length)];
-        d.style.animationDuration = 6 + Math.random() * 10 + "s";
-        d.style.animationDelay = Math.random() * 12 + "s";
-        confettiBg.appendChild(d);
-      }
-
-      // ===========================
-      //  GAME STATE
-      // ===========================
+      // ── State ──────────────────────────────────────────
       const socket = io();
-      const canvas = document.getElementById("gameCanvas");
+      const canvas = document.getElementById("c");
       const ctx = canvas.getContext("2d");
-
-      let myRole = null;
-      let players = {};
-      let balloons = [];
-      let splatters = [];
-      let powerUps = []; // server-synced power-ups on field
-      const holiColors = [
+      const HOLI = [
         "#FF1744",
         "#00E676",
         "#2979FF",
@@ -730,254 +787,250 @@
         "#76FF03",
       ];
 
-      const speed = 5;
-      let myPlayer = { x: 400, y: 250, dx: 1, dy: 0, radius: 20 };
-      let cooldown = 0;
-      let gameActive = false;
-      let currentWeapon = "balloon";
-
-      // Ammo counts (client-side for display, server authoritative)
+      let myRole = null,
+        myName = "",
+        players = {},
+        balloons = [],
+        splatters = [];
+      let gameActive = false,
+        cooldown = 0,
+        weapon = "balloon";
       let ammo = { balloon: Infinity, pichkari: Infinity, bomb: 3, burst: 2 };
+      let me = { x: 400, y: 250, dx: 1, dy: 0, radius: 20 };
+      let particles = [],
+        fieldPUs = [],
+        nextPU = 300;
+      let shake = { x: 0, y: 0, t: 0, i: 0 };
+      let speedBoost = 1,
+        speedT = 0;
+      let names = { P1: "Player 1", P2: "Player 2" };
 
-      // Particle effects (client only)
-      let particles = [];
-      let screenShake = { x: 0, y: 0, timer: 0 };
-
-      // Power-up pickups on the canvas (client-side visual)
-      let fieldPowerUps = [];
-      let nextPowerUpSpawn = 300; // frames
-
-      // Speed boost state
-      let speedBoost = 1.0;
-      let speedBoostTimer = 0;
-
-      // ===========================
-      //  WEAPON SELECTION
-      // ===========================
-      function selectWeapon(w) {
-        ensureAudio();
-        if (w === "bomb" && ammo.bomb <= 0) {
-          sfxEmpty();
-          showToast("💣 No bombs left!");
-          return;
-        }
-        if (w === "burst" && ammo.burst <= 0) {
-          sfxEmpty();
-          showToast("⚡ No burst left!");
-          return;
-        }
-        currentWeapon = w;
-        ["balloon", "pichkari", "bomb", "burst"].forEach((id) => {
-          const el = document.getElementById("wbtn-" + id);
-          const mel = document.getElementById("mwbtn-" + id);
-          if (el) el.classList.toggle("active", id === w);
-          if (mel) mel.classList.toggle("active", id === w);
-        });
+      // ── Helpers ────────────────────────────────────────
+      let _tt = null;
+      function toast(msg, ms = 1800) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        clearTimeout(_tt);
+        _tt = setTimeout(() => el.classList.remove("show"), ms);
       }
-
-      function updateAmmoUI() {
-        document.getElementById("bomb-count").textContent =
-          ammo.bomb > 0 ? ammo.bomb : "✗";
-        document.getElementById("burst-count").textContent =
-          ammo.burst > 0 ? ammo.burst : "✗";
-        document.getElementById("mbomb-count").textContent =
-          ammo.bomb > 0 ? ammo.bomb : "✗";
-        document.getElementById("mburst-count").textContent =
-          ammo.burst > 0 ? ammo.burst : "✗";
-      }
-
-      // ===========================
-      //  TOAST
-      // ===========================
-      let toastTimer = null;
-      function showToast(msg, duration = 1800) {
-        const t = document.getElementById("toast");
-        t.textContent = msg;
-        t.classList.add("show");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => t.classList.remove("show"), duration);
-      }
-
-      // ===========================
-      //  HIT FLASH
-      // ===========================
-      function flashScreen(color) {
-        const f = document.getElementById("hit-flash");
+      function flash(color) {
+        const f = document.getElementById("hf");
         f.style.background = color;
-        f.style.opacity = "0.35";
-        setTimeout(() => {
-          f.style.opacity = "0";
-        }, 200);
+        f.style.opacity = ".35";
+        setTimeout(() => (f.style.opacity = "0"), 200);
       }
-
-      // ===========================
-      //  PARTICLES
-      // ===========================
-      function spawnParticles(x, y, color, count = 12, explosive = false) {
-        for (let i = 0; i < count; i++) {
-          const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
-          const speed = explosive
-            ? 4 + Math.random() * 8
-            : 2 + Math.random() * 4;
+      function doShake(i = 8) {
+        shake.t = 10;
+        shake.i = i;
+      }
+      function parts(x, y, color, n = 12, big = false) {
+        for (let i = 0; i < n; i++) {
+          const a = (Math.PI * 2 * i) / n + Math.random() * 0.3;
+          const s = big ? 4 + Math.random() * 8 : 2 + Math.random() * 4;
           particles.push({
             x,
             y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            radius: explosive ? 3 + Math.random() * 5 : 2 + Math.random() * 3,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            r: big ? 3 + Math.random() * 5 : 2 + Math.random() * 3,
             color,
-            alpha: 1,
-            life: explosive ? 1.0 : 0.8,
+            a: 1,
+            life: big ? 1 : 0.8,
             decay: 0.02 + Math.random() * 0.02,
-            gravity: 0.15,
+            g: 0.15,
           });
         }
       }
-
-      function spawnPichkariParticles(x, y, vx, vy, color) {
-        for (let i = 0; i < 6; i++) {
+      function streamParts(x, y, vx, vy, color) {
+        for (let i = 0; i < 5; i++)
           particles.push({
             x,
             y,
             vx: vx * (0.8 + Math.random() * 0.4) + (Math.random() - 0.5) * 2,
             vy: vy * (0.8 + Math.random() * 0.4) + (Math.random() - 0.5) * 2,
-            radius: 2 + Math.random() * 2,
+            r: 2 + Math.random() * 2,
             color,
-            alpha: 0.9,
-            life: 0.7,
-            decay: 0.04,
-            gravity: 0.05,
+            a: 0.85,
+            life: 0.6,
+            decay: 0.045,
+            g: 0.04,
           });
+      }
+      function updAmmo() {
+        document.getElementById("bc").textContent =
+          ammo.bomb > 0 ? ammo.bomb : "✗";
+        document.getElementById("brc").textContent =
+          ammo.burst > 0 ? ammo.burst : "✗";
+        document.getElementById("mbc").textContent =
+          ammo.bomb > 0 ? ammo.bomb : "✗";
+        document.getElementById("mbrc").textContent =
+          ammo.burst > 0 ? ammo.burst : "✗";
+      }
+      function updNames() {
+        document.getElementById("ln1").textContent = names.P1;
+        document.getElementById("ln2").textContent = names.P2;
+      }
+      function updScores(sc) {
+        document.getElementById("sc1").textContent = sc.P1;
+        document.getElementById("sc2").textContent = sc.P2;
+      }
+
+      // ── Weapon select ──────────────────────────────────
+      function selW(w) {
+        ea();
+        if (w === "bomb" && ammo.bomb <= 0) {
+          sfx.empty();
+          toast("💣 No bombs! Find a power-up!");
+          return;
         }
+        if (w === "burst" && ammo.burst <= 0) {
+          sfx.empty();
+          toast("⚡ No burst! Find a power-up!");
+          return;
+        }
+        weapon = w;
+        ["balloon", "pichkari", "bomb", "burst"].forEach((id) => {
+          document
+            .getElementById("wb-" + id)
+            ?.classList.toggle("active", id === w);
+          document
+            .getElementById("mwb-" + id)
+            ?.classList.toggle("active", id === w);
+        });
       }
 
-      // ===========================
-      //  SCREEN SHAKE
-      // ===========================
-      function triggerShake(intensity = 8) {
-        screenShake.timer = 10;
-        screenShake.intensity = intensity;
-      }
-
-      // ===========================
-      //  SOCKET EVENTS
-      // ===========================
+      // ── Socket ─────────────────────────────────────────
       socket.on("rolesUpdate", (roles) => {
-        document.getElementById("btn-rahul").disabled = roles.Rahul !== null;
-        document.getElementById("btn-rashmi").disabled = roles.Rashmi !== null;
-        document.getElementById("btn-rahul").innerText = roles.Rahul
-          ? "👦🏽 Rahul (Taken)"
-          : "👦🏽 Play as Rahul";
-        document.getElementById("btn-rashmi").innerText = roles.Rashmi
-          ? "👧🏽 Rashmi (Taken)"
-          : "👧🏽 Play as Rashmi";
+        const t1 = roles.P1 !== null,
+          t2 = roles.P2 !== null;
+        document.getElementById("card-p1").classList.toggle("taken", t1);
+        document.getElementById("card-p2").classList.toggle("taken", t2);
+        document.getElementById("p1form").style.display = t1 ? "none" : "flex";
+        document.getElementById("p2form").style.display = t2 ? "none" : "flex";
+        document.getElementById("p1tk").style.display = t1 ? "" : "none";
+        document.getElementById("p2tk").style.display = t2 ? "" : "none";
       });
 
+      socket.on("namesUpdate", (n) => {
+        names = n;
+        updNames();
+      });
       socket.on("roleError", (msg) => alert(msg));
 
-      function joinGame(role) {
-        ensureAudio();
-        socket.emit("joinGame", role);
+      function join(role) {
+        ea();
+        let name = "";
+        if (role === "P1") name = document.getElementById("n1").value.trim();
+        if (role === "P2") name = document.getElementById("n2").value.trim();
+        if ((role === "P1" || role === "P2") && !name) {
+          toast("✏️ Please enter your name first!");
+          document.getElementById(role === "P1" ? "n1" : "n2").focus();
+          return;
+        }
+        myName = name || "Spectator";
+        socket.emit("joinGame", { role, name });
       }
 
       socket.on("init", (data) => {
         myRole = data.role;
         players = data.players;
         splatters = data.splatters;
-
-        document.getElementById("selection-screen").style.display = "none";
-        document.getElementById("game-wrapper").style.display = "flex";
+        names = data.names;
+        updNames();
+        document.getElementById("sel").style.display = "none";
+        document.getElementById("gw").style.display = "flex";
         gameActive = true;
 
-        document.getElementById("status").innerText = "Playing as: " + myRole;
-        document.getElementById("status").style.color =
-          myRole === "Rahul"
-            ? "#2980b9"
-            : myRole === "Rashmi"
-            ? "#c0392b"
-            : "#777";
-
-        if (myRole !== "Spectator") {
-          myPlayer.x = players[socket.id].x;
-          myPlayer.y = players[socket.id].y;
-          myPlayer.dx = players[socket.id].dx;
-          myPlayer.dy = players[socket.id].dy;
+        const st = document.getElementById("status");
+        if (myRole === "Spectator") {
+          st.textContent = "👁️ Spectating";
+          st.style.color = "#777";
+        } else {
+          st.textContent =
+            (myRole === "P1" ? "💙" : "❤️") +
+            " " +
+            myName +
+            " (" +
+            myRole +
+            ")";
+          st.style.color = myRole === "P1" ? "#2266cc" : "#cc1130";
         }
-        updateScoreUI(data.scores);
-        sfxPowerUp();
-        showToast("🎨 Happy Holi, " + myRole + "!", 2500);
-        update();
+        if (myRole !== "Spectator" && players[socket.id]) {
+          me.x = players[socket.id].x;
+          me.y = players[socket.id].y;
+          me.dx = players[socket.id].dx;
+          me.dy = players[socket.id].dy;
+        }
+        updScores(data.scores);
+        sfx.powerup();
+        toast(
+          "🎨 Welcome, " +
+            (myRole === "Spectator" ? "Spectator" : myName) +
+            "!",
+          2500
+        );
+        loop();
       });
 
       function resetGame() {
         if (confirm("Reset scores and clean the board?")) {
           socket.emit("resetGame");
-          sfxPowerUp();
+          sfx.powerup();
         }
       }
-
       socket.on("gameReset", (data) => {
         players = data.players;
         splatters = data.splatters;
         balloons = [];
         particles = [];
         ammo = { balloon: Infinity, pichkari: Infinity, bomb: 3, burst: 2 };
-        updateAmmoUI();
+        updAmmo();
         if (myRole !== "Spectator" && players[socket.id]) {
-          myPlayer.x = players[socket.id].x;
-          myPlayer.y = players[socket.id].y;
-          myPlayer.dx = players[socket.id].dx;
-          myPlayer.dy = players[socket.id].dy;
+          me.x = players[socket.id].x;
+          me.y = players[socket.id].y;
+          me.dx = players[socket.id].dx;
+          me.dy = players[socket.id].dy;
         }
-        updateScoreUI(data.scores);
-        showToast("🔄 Game Reset!");
+        updScores(data.scores);
+        toast("🔄 Game Reset!");
       });
 
-      socket.on("stateUpdate", (data) => {
-        players = data.players;
+      socket.on("stateUpdate", (d) => {
+        players = d.players;
       });
-      socket.on("scoreUpdate", (scores) => {
-        updateScoreUI(scores);
-        sfxScore();
+      socket.on("scoreUpdate", (sc) => {
+        updScores(sc);
+        sfx.score();
       });
-      socket.on("splatterAdded", (newSplatters) => {
-        splatters.push(...newSplatters);
+      socket.on("splatterAdded", (s) => {
+        splatters.push(...s);
       });
-      socket.on("balloonFired", (balloon) => {
-        balloons.push(balloon);
+      socket.on("balloonFired", (b) => {
+        balloons.push(b);
       });
-
-      socket.on("bombFired", (bomb) => {
-        balloons.push(bomb);
+      socket.on("bombFired", (b) => {
+        balloons.push(b);
       });
-      socket.on("burstFired", (burstArr) => {
-        balloons.push(...burstArr);
+      socket.on("burstFired", (arr) => {
+        balloons.push(...arr);
       });
-      socket.on("pichkariFired", (stream) => {
-        balloons.push(...stream);
+      socket.on("pichkariFired", (arr) => {
+        balloons.push(...arr);
       });
-
-      // Hit on me from server broadcast
       socket.on("hitNotify", (data) => {
         if (data.victimId === socket.id) {
-          flashScreen(data.color);
-          triggerShake(10);
-          sfxHit();
-          showToast("💥 You got splashed!", 1200);
+          flash(data.color);
+          doShake(10);
+          sfx.hit();
+          toast("💥 You got splashed!", 1200);
         }
       });
 
-      function updateScoreUI(scores) {
-        document.getElementById("score-rahul").innerText = scores.Rahul;
-        document.getElementById("score-rashmi").innerText = scores.Rashmi;
-      }
-
-      // ===========================
-      //  CONTROLS
-      // ===========================
+      // ── Controls ───────────────────────────────────────
       const keys = { w: false, a: false, s: false, d: false };
       window.addEventListener("keydown", (e) => {
-        ensureAudio();
+        ea();
         if (!gameActive) return;
         if (e.key === "w" || e.key === "ArrowUp") keys.w = true;
         if (e.key === "a" || e.key === "ArrowLeft") keys.a = true;
@@ -987,10 +1040,10 @@
           e.preventDefault();
           shoot();
         }
-        if (e.key === "1") selectWeapon("balloon");
-        if (e.key === "2") selectWeapon("pichkari");
-        if (e.key === "3") selectWeapon("bomb");
-        if (e.key === "4") selectWeapon("burst");
+        if (e.key === "1") selW("balloon");
+        if (e.key === "2") selW("pichkari");
+        if (e.key === "3") selW("bomb");
+        if (e.key === "4") selW("burst");
       });
       window.addEventListener("keyup", (e) => {
         if (e.key === "w" || e.key === "ArrowUp") keys.w = false;
@@ -998,14 +1051,13 @@
         if (e.key === "s" || e.key === "ArrowDown") keys.s = false;
         if (e.key === "d" || e.key === "ArrowRight") keys.d = false;
       });
-
-      const bindTouch = (id, key) => {
+      const bt = (id, key) => {
         const el = document.getElementById(id);
         el.addEventListener(
           "touchstart",
           (e) => {
             e.preventDefault();
-            ensureAudio();
+            ea();
             keys[key] = true;
           },
           { passive: false }
@@ -1019,34 +1071,37 @@
           { passive: false }
         );
       };
-      bindTouch("btn-up", "w");
-      bindTouch("btn-down", "s");
-      bindTouch("btn-left", "a");
-      bindTouch("btn-right", "d");
-      document.getElementById("splash-btn").addEventListener(
+      bt("bu", "w");
+      bt("bd", "s");
+      bt("bl", "a");
+      bt("br", "d");
+      document.getElementById("splashbtn").addEventListener(
         "touchstart",
         (e) => {
           e.preventDefault();
-          ensureAudio();
+          ea();
           shoot();
         },
         { passive: false }
       );
+      document.getElementById("n1").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") join("P1");
+      });
+      document.getElementById("n2").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") join("P2");
+      });
 
-      // ===========================
-      //  SHOOT
-      // ===========================
+      // ── Shoot ──────────────────────────────────────────
       function shoot() {
         if (myRole === "Spectator" || cooldown > 0) return;
+        const color = HOLI[~~(Math.random() * HOLI.length)];
+        const cx = me.x,
+          cy = me.y,
+          dvx = me.dx * 12,
+          dvy = me.dy * 12;
 
-        const color = holiColors[Math.floor(Math.random() * holiColors.length)];
-        const cx = myPlayer.x,
-          cy = myPlayer.y;
-        const dvx = myPlayer.dx * 12,
-          dvy = myPlayer.dy * 12;
-
-        if (currentWeapon === "balloon") {
-          const b = {
+        if (weapon === "balloon") {
+          socket.emit("shoot", {
             x: cx,
             y: cy,
             vx: dvx,
@@ -1055,17 +1110,15 @@
             color,
             ownerRole: myRole,
             type: "balloon",
-          };
-          socket.emit("shoot", b);
-          sfxShoot_balloon();
+          });
+          sfx.balloon();
           cooldown = 15;
-        } else if (currentWeapon === "pichkari") {
-          // Stream of small fast droplets
-          const stream = [];
-          for (let i = 0; i < 6; i++) {
-            stream.push({
-              x: cx + myPlayer.dx * (i * 8),
-              y: cy + myPlayer.dy * (i * 8),
+        } else if (weapon === "pichkari") {
+          const s = [];
+          for (let i = 0; i < 6; i++)
+            s.push({
+              x: cx + me.dx * (i * 8),
+              y: cy + me.dy * (i * 8),
               vx: dvx * 1.4 + (Math.random() - 0.5) * 2,
               vy: dvy * 1.4 + (Math.random() - 0.5) * 2,
               radius: 4,
@@ -1074,19 +1127,18 @@
               type: "pichkari",
               delay: i * 3,
             });
-          }
-          socket.emit("pichkariShoot", stream);
-          sfxShoot_pichkari();
+          socket.emit("pichkariShoot", s);
+          sfx.pichkari();
           cooldown = 20;
-        } else if (currentWeapon === "bomb") {
+        } else if (weapon === "bomb") {
           if (ammo.bomb <= 0) {
-            sfxEmpty();
-            showToast("💣 Out of bombs! Pick up a power-up!");
+            sfx.empty();
+            toast("💣 Out of bombs!");
             return;
           }
           ammo.bomb--;
-          updateAmmoUI();
-          const b = {
+          updAmmo();
+          socket.emit("bombShoot", {
             x: cx,
             y: cy,
             vx: dvx * 0.7,
@@ -1095,177 +1147,145 @@
             color,
             ownerRole: myRole,
             type: "bomb",
-          };
-          socket.emit("bombShoot", b);
-          sfxShoot_bomb();
+          });
+          sfx.bomb();
           cooldown = 25;
-        } else if (currentWeapon === "burst") {
+        } else if (weapon === "burst") {
           if (ammo.burst <= 0) {
-            sfxEmpty();
-            showToast("⚡ Out of bursts! Pick up a power-up!");
+            sfx.empty();
+            toast("⚡ Out of burst!");
             return;
           }
           ammo.burst--;
-          updateAmmoUI();
-          const burst = [];
+          updAmmo();
+          const b = [];
           for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8;
-            burst.push({
+            const a = (Math.PI * 2 * i) / 8;
+            b.push({
               x: cx,
               y: cy,
-              vx: Math.cos(angle) * 10,
-              vy: Math.sin(angle) * 10,
+              vx: Math.cos(a) * 10,
+              vy: Math.sin(a) * 10,
               radius: 6,
               color,
               ownerRole: myRole,
               type: "burst",
             });
           }
-          socket.emit("burstShoot", burst);
-          sfxShoot_burst();
+          socket.emit("burstShoot", b);
+          sfx.burst();
           cooldown = 30;
         }
       }
 
-      // ===========================
-      //  POWER-UPS (client-side)
-      // ===========================
-      function spawnFieldPowerUp() {
-        const types = ["bomb", "burst", "speed"];
-        const icons = { bomb: "💣", burst: "⚡", speed: "🚀" };
-        const type = types[Math.floor(Math.random() * types.length)];
-        fieldPowerUps.push({
+      // ── Power-ups ──────────────────────────────────────
+      function spawnPU() {
+        const types = ["bomb", "burst", "speed"],
+          icons = { bomb: "💣", burst: "⚡", speed: "🚀" };
+        const t = types[~~(Math.random() * types.length)];
+        fieldPUs.push({
           x: 80 + Math.random() * (canvas.width - 160),
           y: 80 + Math.random() * (canvas.height - 160),
-          type,
-          icon: icons[type],
-          radius: 18,
-          life: 400 + Math.random() * 200,
+          type: t,
+          icon: icons[t],
+          r: 18,
+          life: 500,
           pulse: Math.random() * Math.PI * 2,
-          collected: false,
         });
       }
-
-      function checkPowerUpCollision() {
+      function checkPUs() {
         if (myRole === "Spectator") return;
-        for (let i = fieldPowerUps.length - 1; i >= 0; i--) {
-          const pu = fieldPowerUps[i];
-          if (pu.collected) continue;
-          const dist = Math.hypot(myPlayer.x - pu.x, myPlayer.y - pu.y);
-          if (dist < pu.radius + 20) {
-            pu.collected = true;
-            if (pu.type === "bomb") {
+        for (let i = fieldPUs.length - 1; i >= 0; i--) {
+          const p = fieldPUs[i];
+          if (Math.hypot(me.x - p.x, me.y - p.y) < p.r + 20) {
+            if (p.type === "bomb") {
               ammo.bomb = Math.min(ammo.bomb + 2, 9);
-              showToast("💣 +2 Bombs!");
+              toast("💣 +2 Bombs!");
             }
-            if (pu.type === "burst") {
+            if (p.type === "burst") {
               ammo.burst = Math.min(ammo.burst + 1, 5);
-              showToast("⚡ +1 Burst!");
+              toast("⚡ +1 Burst!");
             }
-            if (pu.type === "speed") {
+            if (p.type === "speed") {
               speedBoost = 1.8;
-              speedBoostTimer = 200;
-              showToast("🚀 Speed Boost!");
+              speedT = 200;
+              toast("🚀 Speed Boost!");
             }
-            updateAmmoUI();
-            spawnParticles(pu.x, pu.y, "#ffe033", 16, true);
-            sfxPowerUp();
-            fieldPowerUps.splice(i, 1);
+            updAmmo();
+            parts(p.x, p.y, "#ffe033", 16, true);
+            sfx.powerup();
+            fieldPUs.splice(i, 1);
           }
         }
       }
 
-      // ===========================
-      //  GAME LOOP
-      // ===========================
-      function update() {
+      // ── Game Loop ──────────────────────────────────────
+      function loop() {
         if (!gameActive) return;
-
-        const effectiveSpeed = speed * speedBoost;
-        if (speedBoostTimer > 0) speedBoostTimer--;
-        else if (speedBoost > 1.0) speedBoost = 1.0;
+        const spd = 5 * speedBoost;
+        if (speedT > 0) speedT--;
+        else if (speedBoost > 1) speedBoost = 1;
 
         if (myRole !== "Spectator" && myRole !== null) {
-          let moved = false;
+          let mv = false;
           if (keys.w) {
-            myPlayer.y -= effectiveSpeed;
-            myPlayer.dx = 0;
-            myPlayer.dy = -1;
-            moved = true;
+            me.y -= spd;
+            me.dx = 0;
+            me.dy = -1;
+            mv = true;
           }
           if (keys.s) {
-            myPlayer.y += effectiveSpeed;
-            myPlayer.dx = 0;
-            myPlayer.dy = 1;
-            moved = true;
+            me.y += spd;
+            me.dx = 0;
+            me.dy = 1;
+            mv = true;
           }
           if (keys.a) {
-            myPlayer.x -= effectiveSpeed;
-            myPlayer.dx = -1;
-            myPlayer.dy = 0;
-            moved = true;
+            me.x -= spd;
+            me.dx = -1;
+            me.dy = 0;
+            mv = true;
           }
           if (keys.d) {
-            myPlayer.x += effectiveSpeed;
-            myPlayer.dx = 1;
-            myPlayer.dy = 0;
-            moved = true;
+            me.x += spd;
+            me.dx = 1;
+            me.dy = 0;
+            mv = true;
           }
-
-          if (moved) sfxWalk();
-
-          myPlayer.x = Math.max(
-            myPlayer.radius,
-            Math.min(canvas.width - myPlayer.radius, myPlayer.x)
-          );
-          myPlayer.y = Math.max(
-            myPlayer.radius,
-            Math.min(canvas.height - myPlayer.radius, myPlayer.y)
-          );
-
-          if (moved) socket.emit("move", myPlayer);
+          if (mv) sfx.walk();
+          me.x = Math.max(me.radius, Math.min(canvas.width - me.radius, me.x));
+          me.y = Math.max(me.radius, Math.min(canvas.height - me.radius, me.y));
+          if (mv) socket.emit("move", me);
           if (cooldown > 0) cooldown--;
-
-          checkPowerUpCollision();
+          checkPUs();
         }
 
-        // Power-up spawning
-        nextPowerUpSpawn--;
-        if (nextPowerUpSpawn <= 0) {
-          spawnFieldPowerUp();
-          nextPowerUpSpawn = 350 + Math.random() * 250;
+        if (--nextPU <= 0) {
+          spawnPU();
+          nextPU = 350 + Math.random() * 250;
+        }
+        for (let i = fieldPUs.length - 1; i >= 0; i--) {
+          fieldPUs[i].life--;
+          fieldPUs[i].pulse += 0.08;
+          if (fieldPUs[i].life <= 0) fieldPUs.splice(i, 1);
         }
 
-        // Age field power-ups
-        for (let i = fieldPowerUps.length - 1; i >= 0; i--) {
-          fieldPowerUps[i].life--;
-          fieldPowerUps[i].pulse += 0.08;
-          if (fieldPowerUps[i].life <= 0) fieldPowerUps.splice(i, 1);
-        }
-
-        // Update balloons
         for (let i = balloons.length - 1; i >= 0; i--) {
-          let b = balloons[i];
+          const b = balloons[i];
           if (b.delay && b.delay > 0) {
             b.delay--;
             continue;
           }
           b.x += b.vx;
           b.y += b.vy;
-
-          // Pichkari trail particles (client-side)
-          if (b.type === "pichkari") {
-            spawnPichkariParticles(b.x, b.y, b.vx, b.vy, b.color);
-          }
-
+          if (b.type === "pichkari") streamParts(b.x, b.y, b.vx, b.vy, b.color);
           if (myRole !== "Spectator" && b.ownerRole === myRole) {
             for (let id in players) {
-              let p = players[id];
+              const p = players[id];
               if (p.role !== myRole) {
-                let dist = Math.hypot(b.x - p.x, b.y - p.y);
-                const hitRadius =
+                const hr =
                   b.type === "bomb" ? 30 : b.type === "burst" ? 22 : 20;
-                if (dist < b.radius + hitRadius) {
+                if (Math.hypot(b.x - p.x, b.y - p.y) < b.radius + hr) {
                   socket.emit("hit", {
                     hitRole: p.role,
                     victimId: id,
@@ -1274,11 +1294,14 @@
                     color: b.color,
                     type: b.type,
                   });
-                  // Big explosion for bomb
-                  const cnt =
-                    b.type === "bomb" ? 25 : b.type === "burst" ? 16 : 12;
-                  spawnParticles(b.x, b.y, b.color, cnt, b.type === "bomb");
-                  if (b.type === "bomb") triggerShake(14);
+                  parts(
+                    b.x,
+                    b.y,
+                    b.color,
+                    b.type === "bomb" ? 25 : b.type === "burst" ? 16 : 12,
+                    b.type === "bomb"
+                  );
+                  if (b.type === "bomb") doShake(14);
                   balloons.splice(i, 1);
                   break;
                 }
@@ -1286,69 +1309,59 @@
             }
             if (!balloons[i]) continue;
           }
-
           if (
             b.x < -20 ||
             b.x > canvas.width + 20 ||
             b.y < -20 ||
             b.y > canvas.height + 20
-          ) {
+          )
             balloons.splice(i, 1);
-          }
         }
 
-        // Update particles
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           p.x += p.vx;
           p.y += p.vy;
-          p.vy += p.gravity;
+          p.vy += p.g;
           p.vx *= 0.96;
           p.vy *= 0.96;
-          p.alpha -= p.decay;
+          p.a -= p.decay;
           p.life -= p.decay;
           if (p.life <= 0) particles.splice(i, 1);
         }
 
-        // Screen shake
-        if (screenShake.timer > 0) {
-          screenShake.timer--;
-          screenShake.x = (Math.random() - 0.5) * screenShake.intensity;
-          screenShake.y = (Math.random() - 0.5) * screenShake.intensity;
+        if (shake.t > 0) {
+          shake.t--;
+          shake.x = (Math.random() - 0.5) * shake.i;
+          shake.y = (Math.random() - 0.5) * shake.i;
         } else {
-          screenShake.x = 0;
-          screenShake.y = 0;
+          shake.x = 0;
+          shake.y = 0;
         }
 
         draw();
-        requestAnimationFrame(update);
+        requestAnimationFrame(loop);
       }
 
-      // ===========================
-      //  DRAW
-      // ===========================
+      // ── Draw ───────────────────────────────────────────
       function draw() {
         ctx.save();
-        ctx.translate(screenShake.x, screenShake.y);
-
+        ctx.translate(shake.x, shake.y);
         ctx.clearRect(-10, -10, canvas.width + 20, canvas.height + 20);
-
-        // Floor pattern
         ctx.fillStyle = "#fafafa";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // subtle grid
-        ctx.strokeStyle = "rgba(0,0,0,0.03)";
+        ctx.strokeStyle = "rgba(0,0,0,.03)";
         ctx.lineWidth = 1;
-        for (let gx = 0; gx <= canvas.width; gx += 40) {
+        for (let x = 0; x <= canvas.width; x += 40) {
           ctx.beginPath();
-          ctx.moveTo(gx, 0);
-          ctx.lineTo(gx, canvas.height);
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
           ctx.stroke();
         }
-        for (let gy = 0; gy <= canvas.height; gy += 40) {
+        for (let y = 0; y <= canvas.height; y += 40) {
           ctx.beginPath();
-          ctx.moveTo(0, gy);
-          ctx.lineTo(canvas.width, gy);
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
           ctx.stroke();
         }
 
@@ -1359,39 +1372,34 @@
           ctx.fillStyle = s.color;
           ctx.globalAlpha = 0.55;
           ctx.fill();
-          // blob edge
-          ctx.globalAlpha = 0.2;
+          ctx.globalAlpha = 0.18;
           ctx.beginPath();
-          ctx.arc(s.x, s.y, s.radius * 1.4, 0, Math.PI * 2);
+          ctx.arc(s.x, s.y, s.radius * 1.5, 0, Math.PI * 2);
           ctx.fill();
-          ctx.closePath();
         });
         ctx.globalAlpha = 1;
 
-        // Field power-ups
-        fieldPowerUps.forEach((pu) => {
-          const pulse = Math.sin(pu.pulse) * 0.15 + 1;
+        // Power-ups
+        fieldPUs.forEach((pu) => {
+          const pl = Math.sin(pu.pulse) * 0.15 + 1;
           ctx.save();
           ctx.translate(pu.x, pu.y);
-          ctx.scale(pulse, pulse);
-          // glow
-          const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, pu.radius * 2);
-          grd.addColorStop(0, "rgba(255,220,50,0.4)");
-          grd.addColorStop(1, "rgba(255,220,50,0)");
+          ctx.scale(pl, pl);
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, pu.r * 2.2);
+          g.addColorStop(0, "rgba(255,220,50,.45)");
+          g.addColorStop(1, "rgba(255,220,50,0)");
           ctx.beginPath();
-          ctx.arc(0, 0, pu.radius * 2, 0, Math.PI * 2);
-          ctx.fillStyle = grd;
+          ctx.arc(0, 0, pu.r * 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = g;
           ctx.fill();
-          // circle bg
           ctx.beginPath();
-          ctx.arc(0, 0, pu.radius, 0, Math.PI * 2);
-          ctx.fillStyle = "white";
+          ctx.arc(0, 0, pu.r, 0, Math.PI * 2);
+          ctx.fillStyle = "#fff";
           ctx.strokeStyle = "#ffe033";
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 2.5;
           ctx.fill();
           ctx.stroke();
-          // icon
-          ctx.font = "16px serif";
+          ctx.font = "15px serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(pu.icon, 0, 1);
@@ -1401,11 +1409,10 @@
         // Particles
         particles.forEach((p) => {
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
           ctx.fillStyle = p.color;
-          ctx.globalAlpha = p.alpha;
+          ctx.globalAlpha = p.a;
           ctx.fill();
-          ctx.closePath();
         });
         ctx.globalAlpha = 1;
 
@@ -1413,80 +1420,80 @@
         for (let id in players) {
           const p = players[id];
           const isMe = id === socket.id;
-          const drawX = isMe ? myPlayer.x : p.x;
-          const drawY = isMe ? myPlayer.y : p.y;
-          const drawDx = isMe ? myPlayer.dx : p.dx;
-          const drawDy = isMe ? myPlayer.dy : p.dy;
+          const dx = isMe ? me.x : p.x,
+            dy = isMe ? me.y : p.y;
+          const ddx = isMe ? me.dx : p.dx,
+            ddy = isMe ? me.dy : p.dy;
 
           // Shadow
           ctx.beginPath();
-          ctx.ellipse(drawX, drawY + 20, 14, 5, 0, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(0,0,0,0.12)";
+          ctx.ellipse(dx, dy + 21, 14, 5, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(0,0,0,.1)";
           ctx.fill();
 
-          // Speed boost aura
-          if (isMe && speedBoost > 1.0) {
-            const aura = ctx.createRadialGradient(
-              drawX,
-              drawY,
-              0,
-              drawX,
-              drawY,
-              35
-            );
-            aura.addColorStop(0, "rgba(255,220,0,0.3)");
-            aura.addColorStop(1, "rgba(255,220,0,0)");
+          // Speed aura
+          if (isMe && speedBoost > 1) {
+            const au = ctx.createRadialGradient(dx, dy, 0, dx, dy, 36);
+            au.addColorStop(0, "rgba(255,220,0,.3)");
+            au.addColorStop(1, "rgba(255,220,0,0)");
             ctx.beginPath();
-            ctx.arc(drawX, drawY, 35, 0, Math.PI * 2);
-            ctx.fillStyle = aura;
+            ctx.arc(dx, dy, 36, 0, Math.PI * 2);
+            ctx.fillStyle = au;
             ctx.fill();
           }
 
-          // Body circle
+          // Body
           ctx.beginPath();
-          ctx.arc(drawX, drawY, 20, 0, Math.PI * 2);
+          ctx.arc(dx, dy, 20, 0, Math.PI * 2);
           ctx.fillStyle = p.color;
           ctx.fill();
           ctx.lineWidth = isMe ? 3 : 2;
-          ctx.strokeStyle = isMe ? "#fff" : "#aaa";
+          ctx.strokeStyle = isMe ? "#fff" : "#bbb";
           ctx.stroke();
 
-          // "Face" — eyes based on direction
-          const eyeX = drawX + drawDx * 10;
-          const eyeY = drawY + drawDy * 10;
-          // eye white
+          // Eye
+          const ex = dx + ddx * 10,
+            ey = dy + ddy * 10;
           ctx.beginPath();
-          ctx.arc(eyeX, eyeY, 6, 0, Math.PI * 2);
+          ctx.arc(ex, ey, 6, 0, Math.PI * 2);
           ctx.fillStyle = "#fff";
           ctx.fill();
           ctx.beginPath();
-          ctx.arc(eyeX + drawDx * 2, eyeY + drawDy * 2, 3, 0, Math.PI * 2);
+          ctx.arc(ex + ddx * 2, ey + ddy * 2, 3, 0, Math.PI * 2);
           ctx.fillStyle = "#222";
           ctx.fill();
 
-          // smile
+          // Smile
           ctx.beginPath();
-          ctx.arc(drawX, drawY + 5, 10, 0.1, Math.PI - 0.1);
-          ctx.strokeStyle = "#fff";
+          ctx.arc(dx, dy + 5, 10, 0.15, Math.PI - 0.15);
+          ctx.strokeStyle = "rgba(255,255,255,.85)";
           ctx.lineWidth = 2;
           ctx.stroke();
 
-          // Label
-          ctx.fillStyle = "#222";
-          ctx.font = `bold 12px 'Nunito', sans-serif`;
+          // Name tag
+          const tag = (p.name || p.role) + (isMe ? " (You)" : "");
+          ctx.font = "bold 12px Nunito,sans-serif";
+          const tw = ctx.measureText(tag).width;
+          ctx.fillStyle = "rgba(255,255,255,.9)";
+          if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(dx - tw / 2 - 6, dy - 44, tw + 12, 18, 5);
+            ctx.fill();
+          } else {
+            ctx.fillRect(dx - tw / 2 - 6, dy - 44, tw + 12, 18);
+          }
+          ctx.fillStyle = p.color;
           ctx.textAlign = "center";
-          ctx.fillText(p.role + (isMe ? " (You)" : ""), drawX, drawY - 28);
+          ctx.fillText(tag, dx, dy - 30);
         }
 
-        // Balloons / projectiles
+        // Projectiles
         balloons.forEach((b) => {
           if (b.delay && b.delay > 0) return;
-
           if (b.type === "bomb") {
-            // Bomb — dark circle with fuse
             ctx.beginPath();
             ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-            ctx.fillStyle = "#222";
+            ctx.fillStyle = "#1a1a2e";
             ctx.fill();
             ctx.strokeStyle = b.color;
             ctx.lineWidth = 3;
@@ -1497,28 +1504,20 @@
             ctx.strokeStyle = "#ff8c00";
             ctx.lineWidth = 2;
             ctx.stroke();
-            // star on bomb
             ctx.font = "10px serif";
             ctx.textAlign = "center";
             ctx.fillStyle = "#fff";
             ctx.fillText("💥", b.x, b.y + 4);
           } else if (b.type === "burst") {
-            // Burst — star-like
             ctx.save();
             ctx.translate(b.x, b.y);
             ctx.rotate(Date.now() * 0.01);
             ctx.beginPath();
             for (let s = 0; s < 6; s++) {
-              const angle = (s * Math.PI * 2) / 6;
+              const a = (s * Math.PI * 2) / 6;
               s === 0
-                ? ctx.moveTo(
-                    Math.cos(angle) * b.radius,
-                    Math.sin(angle) * b.radius
-                  )
-                : ctx.lineTo(
-                    Math.cos(angle) * b.radius,
-                    Math.sin(angle) * b.radius
-                  );
+                ? ctx.moveTo(Math.cos(a) * b.radius, Math.sin(a) * b.radius)
+                : ctx.lineTo(Math.cos(a) * b.radius, Math.sin(a) * b.radius);
             }
             ctx.closePath();
             ctx.fillStyle = b.color;
@@ -1528,7 +1527,6 @@
             ctx.stroke();
             ctx.restore();
           } else if (b.type === "pichkari") {
-            // Pichkari — elongated droplet
             ctx.beginPath();
             ctx.ellipse(
               b.x,
@@ -1544,15 +1542,13 @@
             ctx.fill();
             ctx.globalAlpha = 1;
           } else {
-            // Balloon
             ctx.beginPath();
             ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
             ctx.fillStyle = b.color;
             ctx.fill();
-            ctx.strokeStyle = "rgba(0,0,0,0.3)";
+            ctx.strokeStyle = "rgba(0,0,0,.25)";
             ctx.lineWidth = 1;
             ctx.stroke();
-            // highlight
             ctx.beginPath();
             ctx.arc(
               b.x - b.radius * 0.3,
@@ -1561,36 +1557,26 @@
               0,
               Math.PI * 2
             );
-            ctx.fillStyle = "rgba(255,255,255,0.5)";
-            ctx.fill();
-            // knot
-            ctx.beginPath();
-            ctx.arc(b.x, b.y + b.radius, 2, 0, Math.PI * 2);
-            ctx.fillStyle = b.color;
+            ctx.fillStyle = "rgba(255,255,255,.5)";
             ctx.fill();
           }
         });
 
-        // Weapon indicator (in canvas)
+        // HUD hint
         if (myRole && myRole !== "Spectator") {
-          const icons = {
-            balloon: "🎈",
-            pichkari: "💦",
-            bomb: "💣",
-            burst: "⚡",
-          };
-          ctx.font = "13px Nunito";
-          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          const ic = { balloon: "🎈", pichkari: "💦", bomb: "💣", burst: "⚡" };
+          ctx.font = "11px Nunito,sans-serif";
+          ctx.fillStyle = "rgba(0,0,0,.35)";
           ctx.textAlign = "left";
           ctx.fillText(
-            `${icons[currentWeapon]} ${
-              currentWeapon.charAt(0).toUpperCase() + currentWeapon.slice(1)
-            }  [1] Balloon  [2] Pichkari  [3] Bomb  [4] Burst`,
+            ic[weapon] +
+              " " +
+              weapon +
+              " active  ·  [1] Balloon  [2] Pichkari  [3] Bomb  [4] Burst",
             8,
             canvas.height - 8
           );
         }
-
         ctx.restore();
       }
     </script>
