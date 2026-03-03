@@ -6,44 +6,49 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// The frontend will actually be served by NGINX in production,
-// but this is kept here so the backend container can serve it if tested independently.
 app.use(express.static("public"));
 
 let roles = { Rahul: null, Rashmi: null };
 let players = {};
 let scores = { Rahul: 0, Rashmi: 0 };
-let splatters = []; // Stores the color stains on the ground
+let splatters = [];
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Assign Role (First is Rahul, Second is Rashmi, rest are Spectators)
-  let myRole = "Spectator";
-  if (!roles.Rahul) {
-    myRole = "Rahul";
-    roles.Rahul = socket.id;
-  } else if (!roles.Rashmi) {
-    myRole = "Rashmi";
-    roles.Rashmi = socket.id;
-  }
+  // Send available roles immediately when a user connects
+  socket.emit("rolesUpdate", roles);
 
-  if (myRole !== "Spectator") {
-    players[socket.id] = {
-      id: socket.id,
-      role: myRole,
-      x: myRole === "Rahul" ? 100 : 700,
-      y: 250,
-      color: myRole === "Rahul" ? "#3498db" : "#e74c3c",
-      dx: myRole === "Rahul" ? 1 : -1,
-      dy: 0,
-    };
-  }
+  // Handle character selection
+  socket.on("joinGame", (requestedRole) => {
+    if (requestedRole === "Rahul" && !roles.Rahul) {
+      roles.Rahul = socket.id;
+    } else if (requestedRole === "Rashmi" && !roles.Rashmi) {
+      roles.Rashmi = socket.id;
+    } else if (requestedRole !== "Spectator") {
+      return socket.emit("roleError", "This character is already taken!");
+    }
 
-  // Send initial state to the newly connected user
-  socket.emit("init", { role: myRole, players, scores, splatters });
-  // Tell everyone else a new player joined
-  socket.broadcast.emit("stateUpdate", { players });
+    let myRole = requestedRole;
+
+    if (myRole !== "Spectator") {
+      players[socket.id] = {
+        id: socket.id,
+        role: myRole,
+        x: myRole === "Rahul" ? 100 : 700,
+        y: 250,
+        color: myRole === "Rahul" ? "#3498db" : "#e74c3c",
+        dx: myRole === "Rahul" ? 1 : -1,
+        dy: 0,
+      };
+    }
+
+    // Send game state to the joined player
+    socket.emit("init", { role: myRole, players, scores, splatters });
+    // Update everyone else
+    io.emit("stateUpdate", { players });
+    io.emit("rolesUpdate", roles);
+  });
 
   // Handle Movement
   socket.on("move", (data) => {
@@ -63,11 +68,9 @@ io.on("connection", (socket) => {
 
   // Handle Hits & Splatters
   socket.on("hit", (data) => {
-    // Update score
     if (data.hitRole === "Rahul") scores.Rashmi++;
     if (data.hitRole === "Rashmi") scores.Rahul++;
 
-    // Generate splatter marks
     const newSplatters = [];
     for (let i = 0; i < 5; i++) {
       newSplatters.push({
@@ -78,10 +81,25 @@ io.on("connection", (socket) => {
       });
     }
     splatters.push(...newSplatters);
-    if (splatters.length > 300) splatters.splice(0, 5); // Prevent memory lag
+    if (splatters.length > 300) splatters.splice(0, 5);
 
     io.emit("scoreUpdate", scores);
     io.emit("splatterAdded", newSplatters);
+  });
+
+  // Handle Game Reset
+  socket.on("resetGame", () => {
+    scores = { Rahul: 0, Rashmi: 0 };
+    splatters = [];
+    // Reset player positions
+    for (let id in players) {
+      let p = players[id];
+      p.x = p.role === "Rahul" ? 100 : 700;
+      p.y = 250;
+      p.dx = p.role === "Rahul" ? 1 : -1;
+      p.dy = 0;
+    }
+    io.emit("gameReset", { players, scores, splatters });
   });
 
   // Handle Disconnect
@@ -90,7 +108,9 @@ io.on("connection", (socket) => {
     if (roles.Rahul === socket.id) roles.Rahul = null;
     if (roles.Rashmi === socket.id) roles.Rashmi = null;
     delete players[socket.id];
+
     io.emit("stateUpdate", { players });
+    io.emit("rolesUpdate", roles); // Notify clients a character is free again
   });
 });
 

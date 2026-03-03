@@ -23,18 +23,88 @@
         color: #e74c3c;
         text-shadow: 1px 1px #f1c40f;
       }
-      #status {
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-      #game-wrapper {
+
+      /* Character Selection Screen */
+      #selection-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(253, 246, 227, 0.98);
         display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+      }
+      .char-btn {
+        padding: 15px 30px;
+        margin: 10px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        color: white;
+        width: 250px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.1s;
+      }
+      .char-btn:active {
+        transform: scale(0.95);
+      }
+      .char-btn:disabled {
+        background: #bdc3c7 !important;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+      #btn-rahul {
+        background: #3498db;
+      }
+      #btn-rashmi {
+        background: #e74c3c;
+      }
+      #btn-spectator {
+        background: #7f8c8d;
+      }
+
+      /* Game UI */
+      #game-wrapper {
+        display: none;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         width: 100vw;
         height: 100vh;
       }
+      #top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        max-width: 800px;
+        margin-bottom: 5px;
+        padding: 0 10px;
+        box-sizing: border-box;
+      }
+      #status {
+        font-weight: bold;
+      }
+      #reset-btn {
+        background: #e67e22;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      #reset-btn:active {
+        transform: scale(0.95);
+      }
+
       canvas {
         background-color: #ffffff;
         border: 3px solid #bdc3c7;
@@ -117,12 +187,36 @@
     </style>
   </head>
   <body>
+    <!-- Selection Screen -->
+    <div id="selection-screen">
+      <h1>🎨 Happy Holi 🎨</h1>
+      <h2>Select Your Character</h2>
+      <button id="btn-rahul" class="char-btn" onclick="joinGame('Rahul')">
+        👦🏽 Play as Rahul
+      </button>
+      <button id="btn-rashmi" class="char-btn" onclick="joinGame('Rashmi')">
+        👧🏽 Play as Rashmi
+      </button>
+      <button
+        id="btn-spectator"
+        class="char-btn"
+        onclick="joinGame('Spectator')"
+      >
+        👁️ Spectate
+      </button>
+    </div>
+
+    <!-- Main Game -->
     <div id="game-wrapper">
       <h2>🎨 Happy Holi 🎨</h2>
-      <div id="status">Connecting...</div>
-      <div>
-        👦🏽 Rahul: <span id="score-rahul">0</span> | 👧🏽 Rashmi:
-        <span id="score-rashmi">0</span>
+
+      <div id="top-bar">
+        <div id="status">Connecting...</div>
+        <div>
+          👦🏽 Rahul: <span id="score-rahul">0</span> | 👧🏽 Rashmi:
+          <span id="score-rashmi">0</span>
+        </div>
+        <button id="reset-btn" onclick="resetGame()">🔄 Reset Game</button>
       </div>
 
       <canvas id="gameCanvas" width="800" height="500"></canvas>
@@ -160,26 +254,86 @@
       const speed = 5;
       let myPlayer = { x: 400, y: 250, dx: 1, dy: 0, radius: 20 };
       let cooldown = 0;
+      let gameActive = false;
 
+      // --- Character Selection ---
+      socket.on("rolesUpdate", (roles) => {
+        // Disable buttons if character is taken by someone else
+        document.getElementById("btn-rahul").disabled = roles.Rahul !== null;
+        document.getElementById("btn-rashmi").disabled = roles.Rashmi !== null;
+
+        // Update button text to reflect status
+        document.getElementById("btn-rahul").innerText = roles.Rahul
+          ? "👦🏽 Rahul (Taken)"
+          : "👦🏽 Play as Rahul";
+        document.getElementById("btn-rashmi").innerText = roles.Rashmi
+          ? "👧🏽 Rashmi (Taken)"
+          : "👧🏽 Play as Rashmi";
+      });
+
+      socket.on("roleError", (msg) => {
+        alert(msg);
+      });
+
+      function joinGame(role) {
+        socket.emit("joinGame", role);
+      }
+
+      // --- Game Setup ---
       socket.on("init", (data) => {
         myRole = data.role;
         players = data.players;
         splatters = data.splatters;
-        document.getElementById("status").innerText =
-          "You are playing as: " + myRole;
+
+        // Hide selection screen, show game
+        document.getElementById("selection-screen").style.display = "none";
+        document.getElementById("game-wrapper").style.display = "flex";
+        gameActive = true;
+
+        document.getElementById("status").innerText = "Playing as: " + myRole;
         document.getElementById("status").style.color =
           myRole === "Rahul"
             ? "#2980b9"
             : myRole === "Rashmi"
             ? "#c0392b"
             : "gray";
+
         if (myRole !== "Spectator") {
           myPlayer.x = players[socket.id].x;
           myPlayer.y = players[socket.id].y;
+          myPlayer.dx = players[socket.id].dx;
+          myPlayer.dy = players[socket.id].dy;
+        }
+        updateScoreUI(data.scores);
+        update(); // Start game loop
+      });
+
+      // --- Reset Game ---
+      function resetGame() {
+        if (
+          confirm(
+            "Are you sure you want to reset the scores and clean the board?"
+          )
+        ) {
+          socket.emit("resetGame");
+        }
+      }
+
+      socket.on("gameReset", (data) => {
+        players = data.players;
+        splatters = data.splatters;
+        balloons = [];
+
+        if (myRole !== "Spectator" && players[socket.id]) {
+          myPlayer.x = players[socket.id].x;
+          myPlayer.y = players[socket.id].y;
+          myPlayer.dx = players[socket.id].dx;
+          myPlayer.dy = players[socket.id].dy;
         }
         updateScoreUI(data.scores);
       });
 
+      // --- Server Updates ---
       socket.on("stateUpdate", (data) => {
         players = data.players;
       });
@@ -198,8 +352,10 @@
         document.getElementById("score-rashmi").innerText = scores.Rashmi;
       }
 
+      // --- Controls ---
       const keys = { w: false, a: false, s: false, d: false };
       window.addEventListener("keydown", (e) => {
+        if (!gameActive) return;
         if (e.key === "w" || e.key === "ArrowUp") keys.w = true;
         if (e.key === "a" || e.key === "ArrowLeft") keys.a = true;
         if (e.key === "s" || e.key === "ArrowDown") keys.s = true;
@@ -261,7 +417,10 @@
         cooldown = 15;
       }
 
+      // --- Game Loop ---
       function update() {
+        if (!gameActive) return;
+
         if (myRole !== "Spectator" && myRole !== null) {
           let moved = false;
           if (keys.w) {
@@ -335,6 +494,7 @@
         requestAnimationFrame(update);
       }
 
+      // --- Drawing ---
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -388,8 +548,6 @@
           ctx.closePath();
         });
       }
-
-      update();
     </script>
   </body>
 </html>
